@@ -9,6 +9,10 @@ public class Weapon : MonoBehaviour
     public Type type;
     public int damage;
     public float rate;
+    public int maxAmmo;
+    public int curAmmo;
+
+
     public BoxCollider meleeArea;
     public TrailRenderer trailEffect;
     public Transform bulletPos;
@@ -24,8 +28,9 @@ public class Weapon : MonoBehaviour
             StopCoroutine("Swing");
             StartCoroutine("Swing");
         }
-        else if (type == Type.Range)
+        else if (type == Type.Range && curAmmo > 0)
         {
+            curAmmo--;
             StopCoroutine("Shot");
             StartCoroutine("Shot");
         }

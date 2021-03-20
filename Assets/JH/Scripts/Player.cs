@@ -10,8 +10,10 @@ public class Player : MonoBehaviour
     public GameObject[] weapons;
     public bool[] hasWeapons;
     public GameObject[] grenades;
-    public int hasGrenades;
+    public GameObject grenadeObj;
+    public Camera followCamera;
 
+    public int hasGrenades;
     public int ammo;
     public int coin;
     public int health;
@@ -26,17 +28,23 @@ public class Player : MonoBehaviour
     float vAxis;
     float fireDelay;
 
-    bool wDown;
-    bool jDown;
     bool isJump;
     bool isDodge;
+    bool isSwap;
+    bool isReload;
+    bool isBorder;
+
+
+    bool wDown;
+    bool jDown;
     bool iDown;
+    bool fDown;
+    bool gDown;
+    bool rDown;
     bool sDown1;
     bool sDown2;
     bool sDown3;
-    bool isSwap;
 
-    bool fDown;
     bool isFireReady = true;
 
     int equipWeaponIndex = -1;
@@ -61,7 +69,6 @@ public class Player : MonoBehaviour
 
     }
 
-    // Update is called once per frame
     void Update()
     {
 
@@ -69,10 +76,85 @@ public class Player : MonoBehaviour
         Move();
         Turn();
         Jump();
+        Grenade();
         Attack();
         Dodge();
         Swap();
         Interation();
+        Reload();
+
+    }
+
+    void Grenade()
+    {
+        if (hasGrenades == 0)
+            return;
+
+        if (gDown && !isReload && !isSwap)
+        {
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit rayHit;
+            if (Physics.Raycast(ray, out rayHit, 100))
+            {
+                Vector3 nextVec = rayHit.point - transform.position;
+                nextVec.y = 10;
+
+                GameObject instantGrenade = Instantiate(grenadeObj, transform.position, transform.rotation);
+                Rigidbody rigidGrenade = instantGrenade.GetComponent<Rigidbody>();
+                rigidGrenade.AddForce(nextVec, ForceMode.Impulse);
+                rigidGrenade.AddTorque(Vector3.back * 10, ForceMode.Impulse);
+
+                hasGrenades--;
+                grenades[hasGrenades].SetActive(false); 
+
+            }
+        }
+
+    }
+
+    void FixedUpdate()
+    {
+        FreezeRotation();
+        StopToWall();
+    }
+
+    private void StopToWall()
+    {
+        Debug.DrawRay(transform.position, transform.forward * 5, Color.green);
+        isBorder = Physics.Raycast(transform.position, transform.forward, 5, LayerMask.GetMask("Wall"));
+    }
+
+    private void FreezeRotation()
+    {
+        rigid.angularVelocity = Vector3.zero;
+    }
+
+    private void Reload()
+    {
+        if (equipWeapon == null)
+            return;
+
+        if (equipWeapon.type == Weapon.Type.Melee)
+            return;
+
+        if (ammo == 0)
+            return;
+
+        if (rDown && !isJump && !isDodge && !isSwap & isFireReady)
+        {
+            anim.SetTrigger("doReload");
+            isReload = true;
+
+            Invoke("ReloadOut", 3f);
+        }
+    }
+
+    void ReloadOut()
+    {
+        int reAmmo = ammo < equipWeapon.maxAmmo ? ammo : equipWeapon.maxAmmo;
+        equipWeapon.curAmmo = reAmmo;
+        ammo -= reAmmo;
+        isReload = false;
     }
 
     private void Attack()
@@ -133,8 +215,10 @@ public class Player : MonoBehaviour
         vAxis = Input.GetAxisRaw("Vertical");
         wDown = Input.GetButton("Walk");
         jDown = Input.GetButtonDown("Jump");
-        fDown = Input.GetButtonDown("Fire1");
+        fDown = Input.GetButton("Fire1");
+        gDown = Input.GetButtonDown("Fire2");
         iDown = Input.GetButtonDown("Interation");
+        rDown = Input.GetButtonDown("Reload");
         sDown1 = Input.GetButtonDown("Swap1");
         sDown2 = Input.GetButtonDown("Swap2");
         sDown3 = Input.GetButtonDown("Swap3");
@@ -148,10 +232,11 @@ public class Player : MonoBehaviour
         if (isDodge)
             moveVec = dodgeVec;
 
-        if (isSwap || !isFireReady)
+        if (isSwap || !isFireReady || isReload)
             moveVec = Vector3.zero;
 
-        transform.position += moveVec * (wDown ? 0.3f : 1f) * speed * Time.deltaTime;
+        if (!isBorder)
+            transform.position += moveVec * (wDown ? 0.3f : 1f) * speed * Time.deltaTime;
 
         anim.SetBool("isRun", moveVec != Vector3.zero);
         anim.SetBool("isWalk", wDown);
@@ -174,7 +259,21 @@ public class Player : MonoBehaviour
 
     void Turn()
     {
+        // #1. 키보드에 의한 회전
         transform.LookAt(transform.position + moveVec);
+
+        // #2. 마우스에 의한 회전
+        if (fDown)
+        {
+            Ray ray = followCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit rayHit;
+            if (Physics.Raycast(ray, out rayHit, 100))
+            {
+                Vector3 nextVec = rayHit.point - transform.position;
+                nextVec.y = 0;
+                transform.LookAt(transform.position + nextVec);
+            }
+        }
     }
 
     void Jump()
