@@ -33,7 +33,7 @@ public class Player : MonoBehaviour
     bool isSwap;
     bool isReload;
     bool isBorder;
-
+    bool isDamage;
 
     bool wDown;
     bool jDown;
@@ -54,6 +54,7 @@ public class Player : MonoBehaviour
 
     Animator anim;
     Rigidbody rigid;
+    MeshRenderer[] meshs;
 
     GameObject nearObject;
     Weapon equipWeapon;
@@ -62,6 +63,7 @@ public class Player : MonoBehaviour
     {
         rigid = GetComponent<Rigidbody>();
         anim = GetComponentInChildren<Animator>();
+        meshs = GetComponentsInChildren<MeshRenderer>();
     }
 
     void Start()
@@ -105,7 +107,7 @@ public class Player : MonoBehaviour
                 rigidGrenade.AddTorque(Vector3.back * 10, ForceMode.Impulse);
 
                 hasGrenades--;
-                grenades[hasGrenades].SetActive(false); 
+                grenades[hasGrenades].SetActive(false);
 
             }
         }
@@ -346,7 +348,33 @@ public class Player : MonoBehaviour
             }
             Destroy(other.gameObject);
         }
+        else if (other.tag == "EnemyBullet")
+        {
+            if (!isDamage)
+            {
+                Bullet enemyBullet = other.GetComponent<Bullet>();
+                health -= enemyBullet.damage;
+                StartCoroutine(OnDamage());
+            }
+        }
     }
+
+    IEnumerator OnDamage()
+    {
+        isDamage = true;
+        foreach (MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = Color.yellow;
+        }
+        yield return new WaitForSeconds(1f);
+
+        isDamage = false;
+        foreach (MeshRenderer mesh in meshs)
+        {
+            mesh.material.color = Color.white;
+        }
+    }
+
 
     private void OnTriggerStay(Collider other)
     {
