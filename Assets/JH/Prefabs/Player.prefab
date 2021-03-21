@@ -400,6 +400,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+  grenadeObj: {fileID: 4702938570332734561, guid: 49992d751bcdf7e4f84425c9ad3c0178,
+    type: 3}
   followCamera: {fileID: 0}
   hasGrenades: 0
   ammo: 0
